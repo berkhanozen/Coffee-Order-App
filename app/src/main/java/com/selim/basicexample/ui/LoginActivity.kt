@@ -1,37 +1,63 @@
 package com.selim.basicexample.ui
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import com.selim.basicexample.R
-import com.selim.basicexample.data.MockData
-import kotlinx.android.synthetic.main.activity_login.*
 
 class LoginActivity : AppCompatActivity() {
+    var auth: FirebaseAuth? = null
+
+    private val emailAddressEdittextView by lazy { findViewById<EditText>(R.id.login_et_mail) }
+    private val passwordEdittextView by lazy { findViewById<EditText>(R.id.login_et_password) }
+    private val buttonLogin by lazy { findViewById<Button>(R.id.btn_login) }
+    private val buttonLoginToRegister by lazy { findViewById<Button>(R.id.btn_login_to_register) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
+        auth = Firebase.auth
 
-        btn_login.setOnClickListener {
-
-            var user=MockData.getUserList().find {it.username==login_et_username.text.toString() && it.password==login_et_password.text.toString()}
-
-            if (user != null) {
-                val intent= Intent(this, MainActivity::class.java)
-                startActivity(intent)
-                Toast.makeText(this,"Hoşgeldiniz ${user.username}",Toast.LENGTH_LONG).show()
-                finish()
+        buttonLogin.setOnClickListener {
+            if (emailAddressEdittextView.text.isEmpty()) {
+                emailAddressEdittextView.error = "Email adresinizi giriniz"
+                emailAddressEdittextView.requestFocus()
+                return@setOnClickListener
             }
-            else
-            {
-                Toast.makeText(this,"Kullanıcı adı veya şifre yanlış",Toast.LENGTH_LONG).show()
+            if (passwordEdittextView.text.isEmpty()) {
+                passwordEdittextView.error = "Parolanızı giriniz"
+                passwordEdittextView.requestFocus()
+                return@setOnClickListener
             }
+
+            auth?.signInWithEmailAndPassword(
+                emailAddressEdittextView.text.toString(),
+                passwordEdittextView.text.toString()
+            )
+                ?.addOnSuccessListener {
+                    val user = auth?.currentUser
+                    Toast.makeText(this, "Hoşgeldiniz ${user?.displayName}", Toast.LENGTH_LONG)
+                        .show()
+                }?.addOnFailureListener {
+                    Toast.makeText(this, "Kullanıcı Bulunamadı", Toast.LENGTH_LONG)
+                        .show()
+                }?.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        startActivity(Intent(this, MainActivity::class.java))
+                        finish()
+                    }
+                }
         }
 
-        btn_login_to_register.setOnClickListener {
-            var intent = Intent(this, AddNewUserActivity::class.java)
+        buttonLoginToRegister.setOnClickListener {
+            val intent = Intent(this, AddNewUserActivity::class.java)
             startActivity(intent)
         }
     }
